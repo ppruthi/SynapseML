@@ -278,8 +278,8 @@ object SynapseUtilities extends HasHttpClient {
          | "numExecutors" : 2,
          | "conf" :
          |     {
-         |         "spark.jars.packages" : "com.microsoft.azure:synapseml_2.12:${BuildInfo.version}",
-         |         "spark.jars.repositories" : "https://mmlspark.azureedge.net/maven",
+//         |         "spark.jars.packages" : "com.microsoft.azure:synapseml_2.12:${BuildInfo.version}",
+//         |         "spark.jars.repositories" : "https://mmlspark.azureedge.net/maven",
          |         "spark.jars.excludes": "$excludes",
          |         "spark.driver.userClassPathFirst": "true",
          |         "spark.executor.userClassPathFirst": "true"
