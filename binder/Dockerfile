@@ -58,7 +58,7 @@ RUN conda install jupyterlab notebook jupyter \
 
 COPY tools/docker/demo/init_notebook.py /root/.ipython/profile_default/startup
 COPY notebooks notebooks
-# WORKDIR notebooks
+WORKDIR notebooks
 
 ARG MMLSPARK_VERSION
 ENV MMLSPARK_VERSION=${MMLSPARK_VERSION}
