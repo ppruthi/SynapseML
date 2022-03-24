@@ -45,7 +45,7 @@ RUN mkdir /tmp/openmpi && \
     ldconfig && \
     rm -rf /tmp/openmpi
 
-RUN conda install jupyter \
+RUN conda install jupyterlab notebook jupyter \
     && jupyter-notebook --generate-config \
     && ipython profile create \
     && echo "c.NotebookApp.token = ''" >> ~/.jupyter/jupyter_notebook_config.py \
