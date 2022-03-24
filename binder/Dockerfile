@@ -1,20 +1,20 @@
-# FROM ubuntu:18.04
+FROM ubuntu:18.04
 #
 # ENV SPARK_VERSION=3.2.1
 # ENV HADOOP_VERSION=2.7
 #
-# RUN apt-get -qq update && apt-get -qq -y install curl bzip2 wget\
-#     && curl -sSL https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -o /tmp/miniconda.sh \
-#     && bash /tmp/miniconda.sh -bfp /usr/local \
-#     && rm -rf /tmp/miniconda.sh \
-#     && conda install -y python=3 \
-#     && conda update conda \
-#     && apt-get install default-jre -y \
-#     && apt-get -qq -y remove curl bzip2 \
-#     && apt-get -qq -y autoremove \
-#     && apt-get autoclean \
-#     && rm -rf /var/lib/apt/lists/* /var/log/dpkg.log \
-#     && conda clean --all --yes
+RUN apt-get -qq update && apt-get -qq -y install curl bzip2 wget\
+    && curl -sSL https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -o /tmp/miniconda.sh \
+    && bash /tmp/miniconda.sh -bfp /usr/local \
+    && rm -rf /tmp/miniconda.sh \
+    && conda install -y python=3 \
+    && conda update conda \
+    && apt-get install default-jre -y \
+    && apt-get -qq -y remove curl bzip2 \
+    && apt-get -qq -y autoremove \
+    && apt-get autoclean \
+    && rm -rf /var/lib/apt/lists/* /var/log/dpkg.log \
+    && conda clean --all --yes
 #
 # # # # Downloads Spark
 # # # RUN wget https://downloads.apache.org/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION}.tgz
@@ -24,9 +24,9 @@
 # # #     mv spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION} /opt/spark && \
 # #     rm spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION}.tgz
 #
-# # ENV SPARK_HOME /opt/spark
-# ENV PATH /opt/conda/bin:$PATH
-# ENV JAVA_HOME /usr/lib/jvm/java-1.8.0-openjdk-amd64
+ENV SPARK_HOME /opt/spark
+ENV PATH /opt/conda/bin:$PATH
+ENV JAVA_HOME /usr/lib/jvm/java-1.8.0-openjdk-amd64
 #
 # # # Build-essentials
 # # RUN apt-get update \
@@ -45,16 +45,16 @@
 # #     ldconfig && \
 # #     rm -rf /tmp/openmpi
 #
-# RUN conda install jupyterlab notebook jupyter \
-#     && jupyter-notebook --generate-config \
-#     && ipython profile create \
-#     && echo "c.NotebookApp.token = ''" >> ~/.jupyter/jupyter_notebook_config.py \
-#     && echo "c.NotebookApp.ip = '0.0.0.0'" >> ~/.jupyter/jupyter_notebook_config.py \
-#     && echo "c.NotebookApp.allow_root = True" >> ~/.jupyter/jupyter_notebook_config.py \
-#     && apt-get -qq -y autoremove \
-#     && apt-get autoclean \
-#     && rm -rf /var/lib/apt/lists/* /var/log/dpkg.log \
-#     && conda clean --all --yes
+RUN conda install jupyterlab notebook jupyter \
+    && jupyter-notebook --generate-config \
+    && ipython profile create \
+    && echo "c.NotebookApp.token = ''" >> ~/.jupyter/jupyter_notebook_config.py \
+    && echo "c.NotebookApp.ip = '0.0.0.0'" >> ~/.jupyter/jupyter_notebook_config.py \
+    && echo "c.NotebookApp.allow_root = True" >> ~/.jupyter/jupyter_notebook_config.py \
+    && apt-get -qq -y autoremove \
+    && apt-get autoclean \
+    && rm -rf /var/lib/apt/lists/* /var/log/dpkg.log \
+    && conda clean --all --yes
 #
 # COPY tools/docker/demo/init_notebook.py /root/.ipython/profile_default/startup
 # COPY notebooks notebooks
@@ -75,9 +75,9 @@
 # #     ${NB_USER}
 # # WORKDIR notebooks
 
-FROM python:3.9-slim
-RUN pip install --no-cache notebook jupyterlab
-ENV HOME=/tmp
+# FROM ubuntu:18.04
+# RUN pip install --no-cache notebook jupyterlab
+# ENV HOME=/tmp
 
 ARG NB_USER
 ARG NB_UID
