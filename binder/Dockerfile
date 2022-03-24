@@ -79,6 +79,17 @@ RUN conda install jupyterlab notebook jupyter \
 # RUN pip install --no-cache notebook jupyterlab
 # ENV HOME=/tmp
 
+ENV SPARK_VERSION=3.2.1
+ENV HADOOP_VERSION=2.7
+
+# Downloads Spark
+RUN wget https://downloads.apache.org/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION}.tgz
+
+# Install Spark and move it to the folder "/opt/spark"
+RUN tar -xzf spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION}.tgz && \
+    mv spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION} /opt/spark && \
+    rm spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION}.tgz
+
 ARG NB_USER
 ARG NB_UID
 ENV USER ${NB_USER}
