@@ -1,0 +1,134 @@
+import matplotlib
+import matplotlib.pyplot as plt
+import numpy as np
+import pyspark.sql.functions as F
+
+df = spark.read.parquet("wasbs://publicwasb@mmlspark.blob.core.windows.net/AdultCensusIncome.parquet")
+display(df)
+
+# Convert the "income" column from {<=50K, >50K} to {0, 1} to represent our binary classification label column
+label_col = "income"
+df = df.withColumn(label_col, F.when(F.col(label_col).contains("<=50K"), F.lit(0)).otherwise(F.lit(1)))
+
+display(df.groupBy("race").count())
+
+display(df.groupBy("sex").count())
+
+# Choose columns/features to do data balance analysis on
+cols_of_interest = ["race", "sex"]
+display(df.select(cols_of_interest + [label_col]))
+
+from synapse.ml.exploratory import FeatureBalanceMeasure
+
+feature_balance_measures = (
+    FeatureBalanceMeasure()
+    .setSensitiveCols(cols_of_interest)
+    .setLabelCol(label_col)
+    .setVerbose(True)
+    .transform(df)
+)
+
+# Sort by Demographic Parity descending for all features
+display(feature_balance_measures.sort(F.abs("FeatureBalanceMeasure.dp").desc()))
+
+# Drill down to feature == "sex"
+display(feature_balance_measures.filter(F.col("FeatureName") == "sex").sort(F.abs("FeatureBalanceMeasure.dp").desc()))
+
+# Drill down to feature == "race"
+display(feature_balance_measures.filter(F.col("FeatureName") == "race").sort(F.abs("FeatureBalanceMeasure.dp").desc()))
+
+races = [row["race"] for row in df.groupBy("race").count().select("race").collect()]
+dp_rows = feature_balance_measures.filter(F.col("FeatureName") == "race").select("ClassA", "ClassB", "FeatureBalanceMeasure.dp").collect()
+race_dp_values = [(row["ClassA"], row["ClassB"], row["dp"]) for row in dp_rows]
+
+race_dp_array = np.zeros((len(races), len(races)))
+for class_a, class_b, dp_value in race_dp_values:
+  i, j = races.index(class_a), races.index(class_b)
+  dp_value = round(dp_value, 2)
+  race_dp_array[i, j] = dp_value
+  race_dp_array[j, i] = -1 * dp_value
+
+colormap = "RdBu"
+dp_min, dp_max = -1.0, 1.0
+
+fig, ax = plt.subplots()
+im = ax.imshow(race_dp_array, vmin=dp_min, vmax=dp_max, cmap=colormap)
+
+cbar = ax.figure.colorbar(im, ax=ax)
+cbar.ax.set_ylabel("Demographic Parity", rotation=-90, va="bottom")
+
+ax.set_xticks(np.arange(len(races)))
+ax.set_yticks(np.arange(len(races)))
+ax.set_xticklabels(races)
+ax.set_yticklabels(races)
+
+plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
+
+for i in range(len(races)):
+  for j in range(len(races)):
+    text = ax.text(j, i, race_dp_array[i, j], ha="center", va="center", color="k")
+    
+ax.set_title("Demographic Parity of Races in Adult Dataset")
+fig.tight_layout()
+plt.show()
+
+from synapse.ml.exploratory import DistributionBalanceMeasure
+
+distribution_balance_measures = (
+    DistributionBalanceMeasure()
+   .setSensitiveCols(cols_of_interest)
+   .transform(df)
+)
+
+# Sort by JS Distance descending
+display(distribution_balance_measures.sort(F.abs("DistributionBalanceMeasure.js_dist").desc()))
+
+distribution_rows = distribution_balance_measures.collect()
+race_row = [row for row in distribution_rows if row["FeatureName"] == "race"][0]["DistributionBalanceMeasure"]
+sex_row = [row for row in distribution_rows if row["FeatureName"] == "sex"][0]["DistributionBalanceMeasure"]
+
+measures_of_interest = ["kl_divergence", "js_dist", "inf_norm_dist", "total_variation_dist", "wasserstein_dist"]
+race_measures = [round(race_row[measure], 4) for measure in measures_of_interest]
+sex_measures = [round(sex_row[measure], 4) for measure in measures_of_interest]
+
+x = np.arange(len(measures_of_interest))
+width = 0.35
+
+fig, ax = plt.subplots()
+rects1 = ax.bar(x - width/2, race_measures, width, label="Race")
+rects2 = ax.bar(x + width/2, sex_measures, width, label="Sex")
+
+ax.set_xlabel("Measure")
+ax.set_ylabel("Value")
+ax.set_title("Distribution Balance Measures of Sex and Race in Adult Dataset")
+ax.set_xticks(x)
+ax.set_xticklabels(measures_of_interest)
+ax.legend()
+
+plt.setp(ax.get_xticklabels(), rotation=20, ha="right", rotation_mode="default")
+
+def autolabel(rects):
+  for rect in rects:
+    height = rect.get_height()
+    ax.annotate('{}'.format(height),
+                xy=(rect.get_x() + rect.get_width() / 2, height),
+                xytext=(0, 1),  # 1 point vertical offset
+                textcoords="offset points",
+                ha='center', va='bottom')
+
+autolabel(rects1)
+autolabel(rects2)
+
+fig.tight_layout()
+
+plt.show()
+
+from synapse.ml.exploratory import AggregateBalanceMeasure
+
+aggregate_balance_measures = (
+    AggregateBalanceMeasure()
+    .setSensitiveCols(cols_of_interest)
+    .transform(df)
+)
+
+display(aggregate_balance_measures)

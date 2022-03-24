@@ -1,0 +1,62 @@
+import os
+
+service_key =  os.environ["ANOMALY_API_KEY"] # Paste your anomaly detector key here
+location = "westus2" # Paste your anomaly detector location here
+
+assert (service_key is not None)
+
+df_signals = spark.read.csv("wasbs://publicwasb@mmlspark.blob.core.windows.net/iot/IoTSignals.csv", header=True, inferSchema=True)
+
+from pyspark.sql.functions import col, struct
+from synapse.ml.cognitive import SimpleDetectAnomalies
+from synapse.ml.core.spark import FluentAPI
+
+detector = (SimpleDetectAnomalies()
+    .setSubscriptionKey(service_key)
+    .setLocation(location)
+    .setOutputCol("anomalies")
+    .setGroupbyCol("grouping")
+    .setSensitivity(95)
+    .setGranularity("secondly"))
+
+df_anomaly = (df_signals
+    .where(col("unitSymbol") == 'RPM')
+    .withColumn("timestamp", col("dateTime").cast("string"))
+    .withColumn("value", col("measureValue").cast("double"))
+    .withColumn("grouping", struct("deviceId"))
+    .mlTransform(detector)).cache()
+
+df_anomaly.createOrReplaceTempView('df_anomaly')
+
+df_anomaly.select("timestamp","value","deviceId","anomalies.isAnomaly").show(3)
+
+
+df_anomaly_single_device = spark.sql("""
+select
+  timestamp,
+  measureValue,
+  anomalies.expectedValue,
+  anomalies.expectedValue + anomalies.upperMargin as expectedUpperValue,
+  anomalies.expectedValue - anomalies.lowerMargin as expectedLowerValue,
+  case when anomalies.isAnomaly=true then 1 else 0 end as isAnomaly
+from
+  df_anomaly
+where deviceid = 'dev-1' and timestamp < '2020-04-29'
+order by timestamp
+limit 200""")
+
+import matplotlib.pyplot as plt
+from pyspark.sql.functions import col
+
+adf = df_anomaly_single_device.toPandas()
+adf_subset = df_anomaly_single_device.where(col("isAnomaly") == 1).toPandas()
+
+plt.figure(figsize=(23,8))
+plt.plot(adf['timestamp'],adf['expectedUpperValue'], color='darkred', linestyle='solid', linewidth=0.25, label='UpperMargin')
+plt.plot(adf['timestamp'],adf['expectedValue'], color='darkgreen', linestyle='solid', linewidth=2, label='Expected Value')
+plt.plot(adf['timestamp'],adf['measureValue'], 'b', color='royalblue', linestyle='dotted', linewidth=2, label='Actual')
+plt.plot(adf['timestamp'],adf['expectedLowerValue'],  color='black', linestyle='solid', linewidth=0.25, label='Lower Margin')
+plt.plot(adf_subset['timestamp'],adf_subset['measureValue'], 'ro', label = 'Anomaly')
+plt.legend()
+plt.title('RPM Anomalies with Confidence Intervals')
+plt.show()
