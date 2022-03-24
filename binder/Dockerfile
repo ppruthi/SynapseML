@@ -16,34 +16,34 @@ RUN apt-get -qq update && apt-get -qq -y install curl bzip2 wget\
     && rm -rf /var/lib/apt/lists/* /var/log/dpkg.log \
     && conda clean --all --yes
 
-# Downloads Spark
-RUN wget https://downloads.apache.org/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION}.tgz
+# # # Downloads Spark
+# # RUN wget https://downloads.apache.org/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION}.tgz
+# #
+# # # Install Spark and move it to the folder "/opt/spark"
+# # RUN tar -xzf spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION}.tgz && \
+# #     mv spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION} /opt/spark && \
+#     rm spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION}.tgz
 
-# Install Spark and move it to the folder "/opt/spark"
-RUN tar -xzf spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION}.tgz && \
-    mv spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION} /opt/spark && \
-    rm spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION}.tgz
-
-ENV SPARK_HOME /opt/spark
+# ENV SPARK_HOME /opt/spark
 ENV PATH /opt/conda/bin:$PATH
 ENV JAVA_HOME /usr/lib/jvm/java-1.8.0-openjdk-amd64
 
-# Build-essentials
-RUN apt-get update \
-	&& apt-get install -y build-essential
-
-# Open-MPI installation (required to use spark on AML)
-ENV OPENMPI_VERSION 3.1.2
-RUN mkdir /tmp/openmpi && \
-    cd /tmp/openmpi && \
-    wget https://download.open-mpi.org/release/open-mpi/v3.1/openmpi-${OPENMPI_VERSION}.tar.gz && \
-    tar zxf openmpi-${OPENMPI_VERSION}.tar.gz && \
-    cd openmpi-${OPENMPI_VERSION} && \
-    ./configure --enable-orterun-prefix-by-default && \
-    make -j $(nproc) all && \
-    make install && \
-    ldconfig && \
-    rm -rf /tmp/openmpi
+# # Build-essentials
+# RUN apt-get update \
+# 	&& apt-get install -y build-essential
+#
+# # Open-MPI installation (required to use spark on AML)
+# ENV OPENMPI_VERSION 3.1.2
+# RUN mkdir /tmp/openmpi && \
+#     cd /tmp/openmpi && \
+#     wget https://download.open-mpi.org/release/open-mpi/v3.1/openmpi-${OPENMPI_VERSION}.tar.gz && \
+#     tar zxf openmpi-${OPENMPI_VERSION}.tar.gz && \
+#     cd openmpi-${OPENMPI_VERSION} && \
+#     ./configure --enable-orterun-prefix-by-default && \
+#     make -j $(nproc) all && \
+#     make install && \
+#     ldconfig && \
+#     rm -rf /tmp/openmpi
 
 RUN conda install jupyterlab notebook jupyter \
     && jupyter-notebook --generate-config \
@@ -64,13 +64,13 @@ ARG MMLSPARK_VERSION
 ENV MMLSPARK_VERSION=${MMLSPARK_VERSION}
 EXPOSE 8888
 
-ARG NB_USER
-ARG NB_UID
-ENV USER ${NB_USER}
-ENV HOME /home/${NB_USER}
-
-RUN adduser --disabled-password \
-    --gecos "Default user" \
-    --uid ${NB_UID} \
-    ${NB_USER}
-WORKDIR notebooks
+# ARG NB_USER
+# ARG NB_UID
+# ENV USER ${NB_USER}
+# ENV HOME /home/${NB_USER}
+#
+# RUN adduser --disabled-password \
+#     --gecos "Default user" \
+#     --uid ${NB_UID} \
+#     ${NB_USER}
+# WORKDIR notebooks
