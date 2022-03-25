@@ -90,6 +90,23 @@ RUN tar -xzf spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION}.tgz && \
     mv spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION} /opt/spark && \
     rm spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION}.tgz
 
+# Build-essentials
+RUN apt-get update \
+	&& apt-get install -y build-essential
+
+# Open-MPI installation (required to use spark on AML)
+ENV OPENMPI_VERSION 3.1.2
+RUN mkdir /tmp/openmpi && \
+    cd /tmp/openmpi && \
+    wget https://download.open-mpi.org/release/open-mpi/v3.1/openmpi-${OPENMPI_VERSION}.tar.gz && \
+    tar zxf openmpi-${OPENMPI_VERSION}.tar.gz && \
+    cd openmpi-${OPENMPI_VERSION} && \
+    ./configure --enable-orterun-prefix-by-default && \
+    make -j $(nproc) all && \
+    make install && \
+    ldconfig && \
+    rm -rf /tmp/openmpi
+
 ARG NB_USER
 ARG NB_UID
 ENV USER ${NB_USER}
