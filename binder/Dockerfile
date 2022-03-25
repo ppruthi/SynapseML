@@ -121,5 +121,7 @@ COPY binder/environment.yml /tmp/environment.yml
 RUN conda env update --file /tmp/environment.yml \
     && conda clean --all --yes
 
+ENV FOOBAR "foobar"
+
 COPY notebooks notebooks
 WORKDIR notebooks
