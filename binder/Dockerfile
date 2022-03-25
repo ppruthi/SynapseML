@@ -117,5 +117,9 @@ RUN adduser --disabled-password \
     --uid ${NB_UID} \
     ${NB_USER}
 
+COPY binder/environment.yml /tmp/environment.yml
+RUN conda env update --file /tmp/environment.yml \
+    && conda clean --all --yes
+
 COPY notebooks notebooks
 WORKDIR notebooks
