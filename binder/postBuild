@@ -1,3 +1,4 @@
 #!/bin/bash
 
+mkdir -p $HOME/.ipython/profile_default
 cp tools/docker/demo/init_notebook.py $HOME/.ipython/profile_default/startup
