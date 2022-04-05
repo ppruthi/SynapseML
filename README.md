@@ -214,15 +214,21 @@ and some necessary custom wrappers may be missing.
 
 ## Learn More
 
--   Visit our [website].
+- Visit our [website].
 
--   Watch our keynote demos at [the Spark+AI Summit 2019], [the Spark+AI European Summit 2018], and [the Spark+AI Summit 2018].
+- Watch our keynote demos at [the Spark+AI Summit 2019], [the Spark+AI European Summit 2018], and [the Spark+AI Summit 2018].
 
--   See how SynapseML is used to [help endangered species].
+- See how SynapseML is used to [help endangered species].
 
--   Explore generative adversarial artwork in [our collaboration with The MET and MIT].
+- Explore generative adversarial artwork in [our collaboration with The MET and MIT].
 
--   Explore [our collaboration with Apache Spark] on image analysis.
+- Explore [our collaboration with Apache Spark] on image analysis.
+
+## Experiment
+
+Try running our notebooks on binder
+
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/ppruthi/SynapseML/user/ppruthi/fix-docker-ctr?labpath=notebooks%2Ffeatures)
 
 [website]: https://microsoft.github.io/SynapseML/ "aka.ms/spark"
 
