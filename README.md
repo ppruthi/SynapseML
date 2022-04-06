@@ -6,7 +6,7 @@
 
 [![Release Notes](https://img.shields.io/badge/release-notes-blue)](https://github.com/Microsoft/SynapseML/releases) [![Scala Docs](https://img.shields.io/static/v1?label=api%20docs&message=scala&color=blue&logo=scala)](https://mmlspark.blob.core.windows.net/docs/0.9.5/scala/index.html#package) [![PySpark Docs](https://img.shields.io/static/v1?label=api%20docs&message=python&color=blue&logo=python)](https://mmlspark.blob.core.windows.net/docs/0.9.5/pyspark/index.html) [![Academic Paper](https://img.shields.io/badge/academic-paper-7fdcf7)](https://arxiv.org/abs/1810.08744)
 
-[![Version](https://img.shields.io/badge/version-0.9.5-blue)](https://github.com/Microsoft/SynapseML/releases) [![Snapshot Version](https://mmlspark.blob.core.windows.net/icons/badges/master_version3.svg)](#sbt) 
+[![Version](https://img.shields.io/badge/version-0.9.5-blue)](https://github.com/Microsoft/SynapseML/releases) [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/ppruthi/SynapseML/user/ppruthi/fix-docker-ctr?labpath=notebooks%2Ffeatures) [![Snapshot Version](https://mmlspark.blob.core.windows.net/icons/badges/master_version3.svg)](#sbt)
 
 
 SynapseML (previously MMLSpark) is an open source library to simplify the creation of scalable machine learning pipelines.
