@@ -2,6 +2,7 @@ from pyspark.sql import SparkSession
 import os
 import pyspark
 
+# Setup spark config for jupyter notebook session.
 syanpseMLConf = pyspark.SparkConf().setAll([
     ("spark.hadoop.fs.AbstractFileSystem.wasb.impl", "org.apache.hadoop.fs.azure.Wasb"),
     ("spark.hadoop.fs.AbstractFileSystem.wasbs.impl", "org.apache.hadoop.fs.azure.Wasbs"),
@@ -16,4 +17,5 @@ spark = SparkSession.builder \
     .appName("SynapseML Docker App") \
     .config(conf=syanpseMLConf) \
     .getOrCreate()
+# Create spark context for jupyter notebook to use later.
 sc = spark.SparkContext
