@@ -1,10 +1,11 @@
 #!/bin/bash
-set -ex
+set -euo pipefail
 
-echo "test script"
-echo $HOSTNAME
-date
-echo $PWD
+echo "test script" >> /tmp/startup
+echo $HOSTNAME >> /tmp/startup
+date >> /tmp/startup
+echo $PWD >> /tmp/startup
+echo "$@" >> /tmp/startup
 
 export OPENMPI_VERSION="3.1.2"
 export SPARK_VERSION="3.2.1"
