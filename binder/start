@@ -1,5 +1,4 @@
 #!/bin/bash
-set -euo pipefail
 
 export OPENMPI_VERSION="3.1.2"
 export SPARK_VERSION="3.2.1"
