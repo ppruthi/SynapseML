@@ -8,8 +8,9 @@ import com.microsoft.azure.synapse.ml.core.env.FileUtilities
 import com.microsoft.azure.synapse.ml.io.split2.HasHttpClient
 import com.microsoft.azure.synapse.ml.build.BuildInfo
 import org.apache.commons.io.IOUtils
+import org.apache.http.HttpStatus
 import org.apache.http.client.entity.UrlEncodedFormEntity
-import org.apache.http.client.methods.{HttpDelete, HttpGet, HttpPost}
+import org.apache.http.client.methods.{HttpDelete, HttpGet, HttpPost, HttpPut}
 import org.apache.http.entity.StringEntity
 import org.apache.http.message.BasicNameValuePair
 import org.json4s.JsonAST.JObject
@@ -22,6 +23,7 @@ import spray.json._
 
 import java.io.{File, InputStream}
 import java.util
+import java.util.Calendar
 import scala.annotation.tailrec
 import scala.concurrent.{ExecutionContext, Future, TimeoutException, blocking}
 import scala.io.Source
@@ -62,7 +64,8 @@ case class Applications(nJobs: Int,
 object SynapseUtilities extends HasHttpClient {
 
   implicit val Fmts: Formats = Serialization.formats(NoTypeHints)
-  lazy val Token: String = getSynapseToken
+  lazy val SynapseToken: String = getAccessToken("https://dev.azuresynapse.net/")
+  lazy val ArmToken = getAccessToken("https://management.azure.com/")
 
   val Folder = s"build_${BuildInfo.version}/scripts"
   val TimeoutInMillis: Int = 30 * 60 * 1000 // 30 minutes
@@ -70,6 +73,8 @@ object SynapseUtilities extends HasHttpClient {
   val StorageContainer: String = "mmlsparkppefs"
   val TenantId: String = "72f988bf-86f1-41af-91ab-2d7cd011db47"
   val ClientId: String = "85dde348-dd2b-43e5-9f5a-22262af45332"
+  val PoolNodeSize: String = "Large"
+  val PoolLocation: String = "southcentralus"
 
   def listPythonFiles(): Array[String] = {
     Option({
@@ -132,7 +137,7 @@ object SynapseUtilities extends HasHttpClient {
 
   def poll(id: Int, livyUrl: String): LivyBatch = {
     val getStatusRequest = new HttpGet(s"$livyUrl/$id")
-    getStatusRequest.setHeader("Authorization", s"Bearer $Token")
+    getStatusRequest.setHeader("Authorization", s"Bearer $SynapseToken")
     val statsResponse = client.execute(getStatusRequest)
     val batch = parse(IOUtils.toString(statsResponse.getEntity.getContent, "utf-8")).extract[LivyBatch]
     statsResponse.close()
@@ -148,11 +153,12 @@ object SynapseUtilities extends HasHttpClient {
         "&filter=(((state%20eq%20%27Queued%27)%20or%20(state%20eq%20%27Submitting%27))" +
         s"%20and%20(sparkPoolName%20eq%20%27$poolName%27))"
     val getRequest = new HttpGet(uri)
-    getRequest.setHeader("Authorization", s"Bearer $Token")
+    getRequest.setHeader("Authorization", s"Bearer $SynapseToken")
     val jobsResponse = client.execute(getRequest)
     val activeJobs =
       parse(IOUtils.toString(jobsResponse.getEntity.getContent, "utf-8"))
         .extract[Applications]
+    jobsResponse.close()
     activeJobs
   }
 
@@ -230,9 +236,131 @@ object SynapseUtilities extends HasHttpClient {
     }
   }
 
-  def getSynapseToken: String = {
-    val spnKey: String = Secrets.SynapseSpnKey
+  private def getBigDataPoolBicepPayload(bigDataPoolName: String,
+                                         poolLocation: String,
+                                         poolNodeSize: String,
+                                         createdAtTs: String): String = {
+    s"""
+    |{
+    |  "name": "$bigDataPoolName",
+    |  "location": "$poolLocation",
+    |  "tags": {
+    |    "createdBy": "SynapseE2E Tests",
+    |    "createdAt": "$createdAtTs"
+    |  },
+    |  "properties": {
+    |    "autoPause": {
+    |      "delayInMinutes": "10",
+    |      "enabled": "true"
+    |    },
+    |    "autoScale": {
+    |      "enabled": "true",
+    |      "maxNodeCount": "10",
+    |      "minNodeCount": "3"
+    |    },
+    |    "cacheSize": "20",
+    |    "dynamicExecutorAllocation": {
+    |      "enabled": "true",
+    |      "maxExecutors": "8",
+    |      "minExecutors": "2"
+    |    },
+    |    "isComputeIsolationEnabled": "false",
+    |    "nodeCount": "0",
+    |    "nodeSize": "$poolNodeSize",
+    |    "nodeSizeFamily": "MemoryOptimized",
+    |    "provisioningState": "Succeeded",
+    |    "sessionLevelPackagesEnabled": "true",
+    |    "sparkVersion": "3.2"
+    |  }
+    |}
+    |""".stripMargin
+  }
 
+  def createSparkPools(poolCount: Int = 1,
+                       subscriptionId: String,
+                       resourceGroupName: String,
+                       workspaceName: String): (Array[String], Int) = {
+    var actualPoolCount: Int = 0
+    val sparkPool = new Array[String](poolCount)
+    val timeStamp: String = Calendar.getInstance().getTime.toString
+
+    for(i <- 1 to poolCount) {
+      val triggerTime: String = Calendar.getInstance().getTimeInMillis.toString
+      val bigDataPoolName = s"tc$triggerTime"
+      val deployUri =
+        s"""
+           |https://management.azure.com/subscriptions/$subscriptionId/resourceGroups/$resourceGroupName/
+           |providers/Microsoft.Synapse/workspaces/$workspaceName/bigDataPools/$bigDataPoolName?
+           |api-version=2021-06-01-preview
+           |""".stripMargin.replaceAll("\\\r\\\n","")
+
+      // Create & Run the deployment Request
+      val deployRequest = new HttpPut(deployUri)
+      deployRequest.setHeader("Authorization", s"Bearer $ArmToken")
+      deployRequest.setHeader("Content-Type", "application/json")
+      deployRequest.setEntity(
+        new StringEntity(getBigDataPoolBicepPayload(bigDataPoolName, PoolLocation, PoolNodeSize, timeStamp)))
+      try {
+        println(s"Creating $bigDataPoolName...")
+        val deployResponse = client.execute(deployRequest)
+        if (deployResponse.getStatusLine.getStatusCode == HttpStatus.SC_ACCEPTED) {
+          sparkPool(i-1) = bigDataPoolName
+          actualPoolCount += 1
+        } else {
+          println(
+            s"""
+               |Failed to create Apache Spark Pool $bigDataPoolName: ${deployResponse.getStatusLine.getStatusCode}:
+               |${deployResponse.getStatusLine.getReasonPhrase}
+               |""".stripMargin.replaceAll("\\\r\\\n",""))
+        }
+        deployResponse.close()
+      } catch {
+        case e: Exception => println(
+          s"""
+             |"Failed to create Apache Spark Pool $bigDataPoolName due to Exception: ${e.getMessage}
+             |""".stripMargin
+        )
+      }
+    }
+    (sparkPool, actualPoolCount)
+  }
+
+  def deleteSparkPools(sparkPools: Array[String],
+                       subscriptionId: String,
+                       resourceGroupName: String,
+                       workspaceName: String): Boolean = {
+    var deleteAll = true  // Flag to verify if a successful cleanup was executed.
+    for (poolName <- sparkPools) {
+      val deleteUri =
+        s"""
+           |https://management.azure.com/subscriptions/$subscriptionId/resourceGroups/$resourceGroupName/
+           |providers/Microsoft.Synapse/workspaces/$workspaceName/bigDataPools/$poolName?
+           |api-version=2021-06-01-preview
+           |""".stripMargin.replaceAll("\\\r\\\n","")
+      val deleteRequest = new HttpDelete(deleteUri)
+      deleteRequest.setHeader("Authorization", s"Bearer $ArmToken")
+      try {
+        println(s"Deleting $poolName...")
+        val deleteResponse = client.execute(deleteRequest)
+        if (deleteResponse.getStatusLine.getStatusCode != HttpStatus.SC_ACCEPTED) {
+          println(
+            s"""
+               |Failed to delete Apache Spark Pool $poolName: ${deleteResponse.getStatusLine.getStatusCode}:
+               |${deleteResponse.getStatusLine.getReasonPhrase}
+               |""".stripMargin.replaceAll("\\\r\\\n",""))
+          deleteAll = false
+        }
+        deleteResponse.close()
+      } catch {
+        case e: Exception => println(s"Failed to delete Apache Spark Pool $poolName: ${e.getMessage}")
+        deleteAll = false
+      }
+    }
+    deleteAll
+  }
+
+  def getAccessToken(reqResource: String): String = {
+    val spnKey: String = Secrets.SynapseSpnKey
     val uri: String = s"https://login.microsoftonline.com/$TenantId/oauth2/token"
 
     val createRequest = new HttpPost(uri)
@@ -242,7 +370,7 @@ object SynapseUtilities extends HasHttpClient {
     bodyList.add(new BasicNameValuePair("grant_type", "client_credentials"))
     bodyList.add(new BasicNameValuePair("client_id", s"$ClientId"))
     bodyList.add(new BasicNameValuePair("client_secret", s"$spnKey"))
-    bodyList.add(new BasicNameValuePair("resource", "https://dev.azuresynapse.net/"))
+    bodyList.add(new BasicNameValuePair("resource", reqResource))
 
     createRequest.setEntity(new UrlEncodedFormEntity(bodyList, "UTF-8"))
 
@@ -254,7 +382,7 @@ object SynapseUtilities extends HasHttpClient {
 
   def cancelRun(livyUrl: String, batchId: Int): Unit = {
     val createRequest = new HttpDelete(s"$livyUrl/$batchId")
-    createRequest.setHeader("Authorization", s"Bearer $Token")
+    createRequest.setHeader("Authorization", s"Bearer $SynapseToken")
     val response = client.execute(createRequest)
     println(response.getEntity.getContent)
   }
@@ -278,7 +406,7 @@ object SynapseUtilities extends HasHttpClient {
          | "numExecutors" : 2,
          | "conf" :
          |     {
-         |         "spark.jars.packages" : "com.microsoft.azure:synapseml_2.12:${BuildInfo.version}",
+         |         "spark.jars.packages" : "com.microsoft.azure:synapseml_2.12:0.9.5-97-80919a0b-SNAPSHOT",
          |         "spark.jars.repositories" : "https://mmlspark.azureedge.net/maven",
          |         "spark.jars.excludes": "$excludes",
          |         "spark.driver.userClassPathFirst": "true",
@@ -289,7 +417,7 @@ object SynapseUtilities extends HasHttpClient {
 
     val createRequest = new HttpPost(livyUrl)
     createRequest.setHeader("Content-Type", "application/json")
-    createRequest.setHeader("Authorization", s"Bearer $Token")
+    createRequest.setHeader("Authorization", s"Bearer $SynapseToken")
     createRequest.setEntity(new StringEntity(livyPayload))
     val response = client.execute(createRequest)
     val content: String = IOUtils.toString(response.getEntity.getContent, "utf-8")

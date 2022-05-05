@@ -4,7 +4,7 @@
 package com.microsoft.azure.synapse.ml.nbtest
 
 import com.microsoft.azure.synapse.ml.core.test.base.TestBase
-import com.microsoft.azure.synapse.ml.nbtest.SynapseUtilities.exec
+import com.microsoft.azure.synapse.ml.nbtest.SynapseUtilities.{createSparkPools, deleteSparkPools, exec}
 
 import java.io.File
 import java.nio.file.{Path, Paths}
@@ -34,12 +34,26 @@ class SynapseTests extends TestBase {
   })
 
   val workspaceName = "mmlsparkppe"
-  val sparkPools: Array[String] = Array(
-    "e2etstspark32i1",
-    "e2etstspark32i2",
-    "e2etstspark32i3",
-    "e2etstspark32i4",
-    "e2etstspark32i5")
+  val resourceGroupName = "marhamil-mmlspark"
+  val subscriptionId = "e342c2c0-f844-4b18-9208-52c8c234c30e"
+  val expectedPoolCount = 3
+
+  println(s"SynapseTests E2E Test Suite starting. Creating $expectedPoolCount Spark Pools...")
+  var (sparkPools, actualPoolCount) = {
+    createSparkPools(expectedPoolCount, subscriptionId, resourceGroupName, workspaceName)
+  }
+  sparkPools = sparkPools.slice(0, actualPoolCount)
+  println("Spark Pools Created: [" + sparkPools.mkString(", ") + "]")
+
+  if (actualPoolCount == 0) {
+    println("Failed to create any Spark Pool for running the tests. Exiting...")
+    System.exit(1)
+  }
+
+  if (actualPoolCount != expectedPoolCount) {
+    println(s"WARNING: Expecting $expectedPoolCount pools; only $actualPoolCount created." +
+      "This may impact test runtime performance")
+  }
 
   SynapseUtilities.listPythonJobFiles()
     .filterNot(_.contains(" "))
@@ -67,11 +81,10 @@ class SynapseTests extends TestBase {
 
           val jobUrl = "https://web-staging.azuresynapse.net/en-us/monitoring/sparkapplication/" +
             jobName +
-            "?workspace=%2Fsubscriptions%2Fe342c2c0-f844-4b18-9208-52c8c234c30e" +
-            "%2FresourceGroups%2Fmarhamil-mmlspark" +
+            s"?workspace=%2Fsubscriptions%2F${subscriptionId}" +
+            s"%2FresourceGroups%2F${resourceGroupName}" +
             s"%2Fproviders%2FMicrosoft.Synapse%2Fworkspaces%2F${workspaceName}" +
             s"&sparkPoolName=${poolName}&livyId=${livyBatch.id}"
-
           assert(result.isSuccess, s"Job failed see ${jobUrl} for details")
         } catch {
           case t: Throwable =>
@@ -82,4 +95,11 @@ class SynapseTests extends TestBase {
         }
       }
     })
+
+  protected override def afterAll(): Unit = {
+    println("SynapseTests E2E Test Suite finished. Deleting Spark Pools...")
+    val deletionSuccess = deleteSparkPools(sparkPools, subscriptionId, resourceGroupName, workspaceName)
+    println(s"Deletion: [$deletionSuccess]")
+    super.afterAll()
+  }
 }
