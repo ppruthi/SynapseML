@@ -22,8 +22,8 @@ docker build . --build-arg SYNAPSEML_VERSION=0.9.5 -f tools/docker/demo/Dockerfi
 
 # Run the image
 ```
-$ docker run -ti synapseml jupyter notebook ./
+$ docker run -p4040:4040 -p8888:8888 -ti synapseml jupyter notebook ./
 ```
 And then on a browser,
-- Open [localhost:8888](https://localhost:8888) to open jupyter terminal and experiment with the notebooks.
-- Open [localhost:4040]() to see the Spark Dashboard.
+- Open [localhost:8888](http://localhost:8888) on your browser to open jupyter terminal and experiment with the notebooks.
+- Open [localhost:4040](http://localhost:4040) on your browser to see the Spark Dashboard.
