@@ -55,12 +55,12 @@
           "uaenorth",
           "uksouth",
           "ukwest",
-          "westus",
           "westus2",
           "westus3"
         ],
         "disabled": [
-          "eastasia"
+          "eastasia",
+          "westus"
         ]
       }
     }
