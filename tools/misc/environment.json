@@ -1,0 +1,68 @@
+{
+  "tests": [ 
+    {
+      "ArtifactName": "MLEPWarmStartValidationV2.ipynb",
+      "SparkVersions": {
+        "enabled": [
+          "SPARK-34",
+          "SPARK-35"
+        ]
+      },
+      "RuntimeBucketsUtc": {
+        "enabled": [
+          "0000-0300",
+          "0300-0600",
+          "0600-0900",
+          "0900-1200",
+          "1200-1500",
+          "1500-1800",
+          "1800-2100",
+          "2100-2400"
+        ]
+      },
+      "Environments": {
+        "enabled": [
+          "edog",
+          "daily",
+          "dxt",
+          "msit",
+          "australiaeast",
+          "australiasoutheast",
+          "brazilsouth",
+          "canadacentral",
+          "canadaeast",
+          "centralindia",
+          "centralus",
+          "eastus",
+          "francecentral",
+          "germanywestcentral",
+          "israelcentral",
+          "italynorth",
+          "japaneast",
+          "japanwest",
+          "koreacentral",
+          "mexicocentral",
+          "northcentralus",
+          "norwayeast",
+          "polandcentral",
+          "soafricanorth",
+          "southcentralus",
+          "southeastasia",
+          "southindia",
+          "swedencentral",
+          "swissnorth",
+          "switzerlandwest",
+          "uaenorth",
+          "uksouth",
+          "ukwest",
+          "westus2",
+          "westus3"
+        ],
+        "disabled": [
+          "eastasia",
+          "westus"
+        ]
+      }
+    }
+  ]
+}
