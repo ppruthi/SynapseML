@@ -1,15 +1,15 @@
 {
   "tests": [ 
     {
-      "ArtifactName": "MLEPWarmStartValidationV2.ipynb",
-      "sparkVersions": {
+      "ArtifactName": "MLEPColdStartValidationV2.ipynb",
+      "SparkVersions": {
         "enabled": [
-            "3.4",
-            "3.5"
+            "SPARK-34",
+            "SPARK-35"
         ]
       },
-      "runningTimeBucketsInUtc": {
-        "enabledTimeBuckets": [
+      "RuntimeBucketsUtc": {
+        "enabled": [
             "0000-0300",
             "0300-0600",
             "0600-0900",
@@ -20,7 +20,7 @@
             "2100-2400"
         ]
       },
-      "enabledEnvironments": {
+      "Environments": {
         "enabled": [
             "edog",
             "daily",
@@ -57,8 +57,7 @@
             "westus",
             "westus2",
             "westus3"
-        ],
-        "disabled": []
+        ]
       }
     }
   ]
