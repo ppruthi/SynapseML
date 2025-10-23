@@ -1,7 +1,7 @@
 {
   "tests": [ 
     {
-      "ArtifactName": "MLEPColdStartValidationV2.ipynb",
+      "ArtifactName": "MLEPWarmStartValidationV2.ipynb",
       "SparkVersions": {
         "enabled": [
             "SPARK-34",
